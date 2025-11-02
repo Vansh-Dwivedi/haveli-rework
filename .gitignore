@@ -1,0 +1,5 @@
+# Sensitive and transient files
+smtp_password.php
+email_queue_*.json
+haveli_reservations.db
+haveli-production-*.zip

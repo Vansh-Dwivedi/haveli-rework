@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://haveli.co.uk/sitemap.xml
+
+# Disallow admin areas
+Disallow: /admin/
+Disallow: /PHPMailer/
+Disallow: /stripe-php/
+
+# Allow important pages
+Allow: /index.php
+Allow: /contact.php
+Allow: /checkout.php
+Allow: /style.css
+Allow: /assets/
+
+# Crawl-delay
+Crawl-delay: 1

@@ -1,0 +1,33 @@
+<?php
+/**
+ * Email API provider configuration (HTTPS fallback when SMTP is blocked)
+ *
+ * Copy this file to provider_config.php and fill in your credentials.
+ * Never commit provider_config.php to version control.
+ *
+ * Supported providers:
+ * - SendGrid: only API key required
+ * - Mailgun: API key + sending domain (and optional EU base URL)
+ */
+
+// Example 1: SendGrid
+// $EMAIL_API = [
+//     'provider' => 'sendgrid',
+//     'api_key'  => 'SG.xxxxxx_your_sendgrid_api_key',
+// ];
+
+// Example 2: Mailgun (US region)
+// $EMAIL_API = [
+//     'provider' => 'mailgun',
+//     'api_key'  => 'key-xxxxxxxxxxxxxxxxxxxx',
+//     'domain'   => 'mg.yourdomain.com',
+//     'base'     => 'https://api.mailgun.net' // optional, default shown
+// ];
+
+// Example 3: Mailgun (EU region)
+// $EMAIL_API = [
+//     'provider' => 'mailgun',
+//     'api_key'  => 'key-xxxxxxxxxxxxxxxxxxxx',
+//     'domain'   => 'mg.yourdomain.com',
+//     'base'     => 'https://api.eu.mailgun.net'
+// ];
