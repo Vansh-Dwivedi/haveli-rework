@@ -1,0 +1,75 @@
+/* Admin Blog styles — modern, readable, accessible */
+:root {
+  --admin-bg: #f6f8fb;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+  --primary: var(--primary, #2563eb); /* fallback */
+  --success: #10b981;
+  --danger: #ef4444;
+  --radius: 10px;
+}
+
+body { background: var(--admin-bg); }
+
+.admin-blog {
+  padding: 28px;
+  max-width: 1100px;
+  margin: 18px auto;
+}
+
+.admin-blog h1 { margin: 0 0 8px 0; font-size: 26px; color: #0f172a; }
+.admin-blog .sub { color: var(--muted); margin-bottom: 16px; }
+
+.top-row { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:18px; }
+
+.post-list { margin-bottom: 20px; }
+.post-item {
+  padding: 14px 16px;
+  border: 1px solid rgba(15,23,42,0.06);
+  margin-bottom: 10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background: var(--card-bg);
+  border-radius: 8px;
+}
+.post-item strong { display:block; font-size:16px; color:#0f172a; }
+.post-item .meta { font-size:13px; color:var(--muted); margin-top:4px; }
+.post-item .actions { display:flex; gap:8px; align-items:center; }
+
+.post-form {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius:12px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+}
+.post-form label { display:block; margin-top:12px; font-weight:600; color:#0f172a; }
+.post-form input[type=text], .post-form textarea, .post-form input[type=datetime-local], .post-form input[type=date] {
+  width:100%;
+  padding:10px 12px;
+  border:1px solid #e6eef8;
+  border-radius:8px;
+  margin-top:8px;
+  background: #fafcff;
+}
+.post-form textarea { min-height:160px; }
+.post-form .form-row { display:flex; gap:12px; }
+.post-form .small { width:220px; }
+
+.thumb { max-width:220px; border-radius:8px; box-shadow:0 4px 12px rgba(2,6,23,0.06); }
+
+.btn { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; cursor:pointer; border:none; }
+.btn-sm { padding:6px 10px; font-size:13px; }
+.btn-primary { background:var(--primary); color:#fff; box-shadow: 0 6px 14px rgba(37,99,235,0.12); }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-ghost { background: transparent; border:1px solid rgba(15,23,42,0.06); color:#0f172a; }
+
+.form-actions { margin-top:18px; display:flex; gap:12px; align-items:center; }
+
+@media (max-width: 900px) {
+  .post-form { padding:16px; }
+  .post-item { flex-direction:column; align-items:flex-start; }
+  .post-item .actions { margin-top:10px; }
+}
+

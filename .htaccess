@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Redirect pretty blog URLs to the PHP handler
+RewriteRule ^blog/?$ /blog.php [L,QSA]
+RewriteRule ^blog/([A-Za-z0-9-]+)/?$ /blog_post.php?slug=$1 [L,QSA]
+
+# Fallback: serve existing files
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]

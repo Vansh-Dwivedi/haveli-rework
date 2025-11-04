@@ -1,0 +1,17 @@
+/* Public blog styles */
+main.blog-listing { max-width:900px; margin:24px auto; padding:0 16px; }
+.blog-article { border-bottom:1px solid #eee; padding:18px 0; }
+.blog-article h2 { margin:8px 0; }
+.blog-article img.featured { max-width:100%; height:auto; border-radius:6px; display:block; margin-bottom:12px; }
+.post-content { margin-top:16px; line-height:1.7; }
+.post-content img { max-width:100%; height:auto; }
+.post-content video { max-width:100%; height:auto; display:block; margin:12px 0; }
+
+.blog-meta { color:#666; font-size:13px; margin-bottom:8px; }
+
+.pagination { display:flex; gap:8px; justify-content:center; margin-top:18px; }
+.pagination a { padding:6px 10px; border:1px solid #ddd; border-radius:4px; text-decoration:none; color:#333; }
+
+@media (max-width:600px) {
+  main.blog-listing { padding:0 12px; }
+}

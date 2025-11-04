@@ -86,6 +86,19 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
 }
 ?>
 
+<?php
+// Fetch recent published blog posts for homepage slider
+require_once __DIR__ . '/db_config.php';
+try {
+  $__pdo_slider = getDBConnection();
+  $stmt_slider = $__pdo_slider->prepare('SELECT id, title, slug, excerpt, featured_image FROM posts WHERE status = "published" AND (published_at IS NULL OR published_at <= NOW()) ORDER BY published_at DESC, created_at DESC LIMIT 6');
+  $stmt_slider->execute();
+  $recent_posts_slider = $stmt_slider->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+  $recent_posts_slider = [];
+}
+?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -291,10 +304,14 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
   <style>
     .toast-container {
       position: fixed;
-      top: 20px;
+      /* place toast below the sticky header to avoid being hidden
+         header height is 70px (see .header in style.css) */
+      top: calc(70px + 12px);
       left: 50%;
       transform: translateX(-50%);
-      z-index: 9999;
+      /* ensure toast displays above regular content (header may have very large z-index;
+         placing it below the header avoids fighting that). */
+      z-index: 10005;
       pointer-events: none;
     }
 
@@ -374,13 +391,99 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
       }
     }
 
+    /* Reservation success modal */
+    .modal {
+      display: none;
+    }
+    .modal.show {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 11100; /* above toast and confetti */
+      pointer-events: auto;
+    }
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));
+      backdrop-filter: blur(3px);
+      opacity: 0;
+      animation: fadeIn 260ms ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0.98);
+      background: linear-gradient(135deg, #ffffff, #fffdf8);
+      color: #111;
+      padding: 22px 28px;
+      border-radius: 14px;
+      max-width: 520px;
+      width: min(92%, 520px);
+      box-shadow: 0 18px 50px rgba(16,24,40,0.45);
+      text-align: center;
+      border: 1px solid rgba(0,0,0,0.06);
+      transform-origin: center bottom;
+      animation: modalPop 320ms cubic-bezier(0.2,0.9,0.2,1) forwards;
+    }
+
+    @keyframes modalPop {
+      from { opacity: 0; transform: translate(-50%, -40%) scale(0.96); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .modal-icon {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg,#7f5af0,#1e90ff);
+      color: #fff;
+      font-size: 34px;
+      margin: 0 auto 12px;
+      box-shadow: 0 8px 24px rgba(31,41,55,0.18);
+    }
+
+    .modal-content h2 { margin: 4px 0 6px; font-size: 20px; }
+    .modal-content p { margin: 0; color: #333; font-size: 15px }
+    .modal-actions { margin-top: 16px; }
+    .btn { background:linear-gradient(90deg,#6a3038,#8b3b43); color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:600 }
+
+    /* Responsive modal tweaks */
+    @media (max-width: 480px) {
+      .modal-icon { width: 64px; height:64px; font-size:28px }
+      .modal-content { padding: 18px 16px; width: calc(100% - 32px); border-radius: 12px }
+      .modal-content h2 { font-size: 18px }
+    }
+
+    /* Confetti canvas full-bleed but pointer-events none so it doesn't block clicks */
+    #confettiCanvas {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 11050; /* below modal */
+      will-change: transform;
+    }
+
     /* Toast Notification Styles */
     .toast-container {
       position: fixed;
-      top: 20px;
+      /* ensure toast sits below the sticky header and remains visible */
+      top: calc(70px + 12px);
       left: 50%;
       transform: translateX(-50%);
-      z-index: 10000;
+      z-index: 10005;
       pointer-events: none;
     }
 
@@ -491,6 +594,21 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
     </div>
   </div>
 
+  <!-- Reservation Success Modal -->
+  <div id="reservationModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="reservationModalTitle">
+    <div class="modal-overlay" tabindex="-1"></div>
+    <div class="modal-content" role="document">
+      <h2 id="reservationModalTitle">Reservation Confirmed</h2>
+      <p id="reservationModalMessage">Your reservation was successful.</p>
+      <div class="modal-actions">
+        <button id="reservationModalClose" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti canvas (created once, used for bursts) -->
+  <canvas id="confettiCanvas" aria-hidden="true"></canvas>
+
   <div class="container">
     <header class="header sticky">
       <div class="logo-section">
@@ -552,6 +670,153 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
           <a href="#contact" class="magnetic-square" id="shape6">Contact Us</a>
         </div>
       </div>
+
+      <!-- Blog 3D Slider (dynamic, uses Swiper coverflow effect) -->
+      <section class="blog-slider-container" aria-label="Latest blog posts">
+        <h2 style="margin:18px 0 6px 0; text-align:center;">Latest from our Blog</h2>
+        <div class="swiper blog-swiper" style="padding:18px 0;">
+          <div class="swiper-wrapper">
+            <?php if (!empty($recent_posts_slider)): ?>
+              <?php foreach ($recent_posts_slider as $post): ?>
+                <?php $img = !empty($post['featured_image']) ? $post['featured_image'] : 'assets/slide1.jpg'; ?>
+                <div class="swiper-slide">
+                  <a href="blog_post.php?slug=<?php echo urlencode($post['slug']); ?>" style="display:block; text-decoration:none; color:inherit;">
+                    <div class="slide-card">
+                      <div class="slide-media" style="background-image: url('<?php echo htmlspecialchars($img); ?>');"></div>
+                      <div class="slide-body">
+                        <h3><?php echo htmlspecialchars($post['title']); ?></h3>
+                        <p><?php echo htmlspecialchars(mb_substr($post['excerpt'] ?? '', 0, 120)); ?>&hellip;</p>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="swiper-slide">
+                <div class="slide-card">
+                  <div class="slide-media" style="background-image: url('assets/slide1.jpg');"></div>
+                  <div class="slide-body">
+                    <h3>Welcome to our Blog</h3>
+                    <p>We will publish updates, recipes and features here soon.</p>
+                  </div>
+                </div>
+              </div>
+            <?php endif; ?>
+          </div>
+          <!-- Add Pagination -->
+          <div class="swiper-pagination"></div>
+          <!-- Navigation -->
+          <div class="swiper-button-prev" aria-label="Previous post"></div>
+          <div class="swiper-button-next" aria-label="Next post"></div>
+        </div>
+        <style>
+          /* Enhanced styling for the blog slider - centered, warm background, larger cards */
+          .blog-slider-container {
+            /* Reduced frame to ~50% of previous width/padding */
+            max-width: 580px; /* was 1160px */
+            margin: 22px auto 44px;
+            padding: 14px 10px; /* halved padding */
+            background: linear-gradient(180deg, #fffaf6 0%, #fffdf9 100%);
+            border-radius: 14px;
+            box-shadow: 0 12px 40px rgba(16,24,40,0.06);
+          }
+
+          /* Swiper container sizing */
+          .blog-swiper { width: 100%; padding: 10px 0 28px; position: relative; }
+          /* Ensure this Swiper doesn't inherit the full-viewport hero styles */
+          .blog-swiper { height: auto !important; min-height: 0 !important; background: transparent !important; }
+          .blog-slider-container { display:flex; align-items:center; justify-content:center; }
+          .blog-swiper .swiper-wrapper { align-items: center; }
+          .blog-swiper .swiper-slide { display:flex; align-items:center; justify-content:center; }
+
+          /* Card design */
+          .slide-card {
+            /* approximately half the previous card size */
+            width: 190px; /* was 380px */
+            height: 260px; /* was 520px */
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 18px 40px rgba(2,6,23,0.12);
+            background: #ffffff;
+            display:flex;
+            flex-direction:column;
+            transition: transform 320ms cubic-bezier(.2,.9,.2,1), box-shadow 320ms;
+          }
+          .swiper-slide-active .slide-card { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 40px rgba(2,6,23,0.14); }
+
+          .slide-media { height: 58%; background-size: cover; background-position: center; }
+          .slide-body { padding: 16px 18px; flex:1; display:flex; flex-direction:column; }
+          .slide-body h3 { margin:0 0 10px 0; font-size:20px; line-height:1.2; color:#0f172a; }
+          .slide-body p { margin:0; color:#5b6370; font-size:14px; line-height:1.5; flex:1; }
+
+          /* Navigation buttons - larger and visible */
+          .blog-swiper .swiper-button-prev, .blog-swiper .swiper-button-next {
+            /* half-size controls for the smaller frame */
+            width:24px; height:24px; border-radius:50%; background: rgba(255,255,255,0.98); color:#0f172a;
+            display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 20px rgba(2,6,23,0.12);
+            top: 50%; transform: translateY(-50%); z-index: 20;
+          }
+          .blog-swiper .swiper-button-prev { left: 6px; }
+          .blog-swiper .swiper-button-next { right: 6px; }
+          .blog-swiper .swiper-button-prev::after, .blog-swiper .swiper-button-next::after { font-size: 10px; }
+
+          /* Pagination bullets */
+          .blog-swiper .swiper-pagination { bottom: 6px; }
+          .blog-swiper .swiper-pagination-bullet { background:#b91c1c; opacity:0.9; width:10px; height:10px; }
+
+          /* Responsive adjustments */
+          /* responsive halves */
+          @media (max-width: 1100px) { .slide-card { width: 170px; height:240px; } }
+          @media (max-width: 820px) { 
+            .slide-card { width: 150px; height:220px; }
+            .blog-slider-container { padding: 12px 8px; }
+            .blog-swiper .swiper-button-prev, .blog-swiper .swiper-button-next { width:20px; height:20px; }
+          }
+          @media (max-width: 480px) {
+            .slide-card { width: 130px; height:200px; }
+            .blog-slider-container { padding: 10px 6px; border-radius: 10px; }
+          }
+  </style>
+
+  <!-- Swiper JS (required for slider) -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+  <script>
+          document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Swiper === 'undefined') return; // graceful
+
+            new Swiper('.blog-swiper', {
+              effect: 'coverflow',
+              grabCursor: true,
+              centeredSlides: true,
+              loop: true,
+              slidesPerView: 'auto',
+              spaceBetween: 36,
+              coverflowEffect: {
+                rotate: 8,
+                stretch: 0,
+                depth: 220,
+                modifier: 1,
+                slideShadows: false
+              },
+              autoplay: {
+                delay: 4200,
+                disableOnInteraction: false
+              },
+              pagination: { el: '.blog-swiper .swiper-pagination', clickable: true },
+              navigation: {
+                nextEl: '.blog-swiper .swiper-button-next',
+                prevEl: '.blog-swiper .swiper-button-prev'
+              },
+              breakpoints: {
+                0: { spaceBetween: 16 },
+                600: { spaceBetween: 26 },
+                1100: { spaceBetween: 36 }
+              }
+            });
+          });
+        </script>
+      </section>
 
       <section class="usp-container" id="usp">
         <h2>The Essence That Sets Us Apart</h2>
@@ -3137,6 +3402,41 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y4X4MDC4M"></script>
   <script>
+    // Initialize blog Swiper 3D coverflow when DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const blogSwiperEl = document.querySelector('.blog-swiper');
+        if (blogSwiperEl && typeof Swiper !== 'undefined') {
+          new Swiper(blogSwiperEl, {
+            effect: 'coverflow',
+            grabCursor: true,
+            centeredSlides: true,
+            slidesPerView: 'auto',
+            loop: true,
+            coverflowEffect: {
+              rotate: 30,
+              stretch: 0,
+              depth: 180,
+              modifier: 1,
+              slideShadows: true,
+            },
+            autoplay: {
+              delay: 3500,
+              disableOnInteraction: false,
+            },
+            pagination: { el: '.blog-swiper .swiper-pagination', clickable: true },
+            navigation: { nextEl: '.blog-swiper .swiper-button-next', prevEl: '.blog-swiper .swiper-button-prev' },
+            breakpoints: {
+              320: { slidesPerView: 1, spaceBetween: 8 },
+              640: { slidesPerView: 'auto', spaceBetween: 16 },
+              960: { slidesPerView: 'auto', spaceBetween: 24 }
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Blog swiper init error', e);
+      }
+    });
     window.dataLayer = window.dataLayer || [];
 
     function gtag() {
@@ -3937,6 +4237,137 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
       toastNotification.classList.remove('show');
     }
 
+    // --- CONFETTI + SUCCESS MODAL ---
+    function showConfettiAndModal(message) {
+      try { playConfettiFromCorners(); } catch (e) { console.warn('Confetti failed:', e); }
+      showReservationModal(message);
+    }
+
+    function showReservationModal(message) {
+      const modal = document.getElementById('reservationModal');
+      const msg = document.getElementById('reservationModalMessage');
+      if (!modal || !msg) return;
+      msg.textContent = message || 'Your reservation is confirmed!';
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+
+      const closeBtn = document.getElementById('reservationModalClose');
+      const overlay = modal.querySelector('.modal-overlay');
+      function hide() {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      closeBtn.onclick = hide;
+      overlay.onclick = hide;
+      // allow Esc to close
+      document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') { hide(); document.removeEventListener('keydown', escHandler); }
+      });
+    }
+
+    function playConfettiFromCorners() {
+      const canvas = document.getElementById('confettiCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // handle high-DPI screens
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      let w = window.innerWidth;
+      let h = window.innerHeight;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const particles = [];
+      const colors = ['#ff4757','#ffa502','#ff6b81','#2ed573','#1e90ff','#7f5af0','#ffd166','#06d6a0'];
+
+      // density & sizing: larger, fewer particles on small screens for performance
+      const isMobile = w <= 480;
+      const perCorner = isMobile ? 60 : 140; // bigger on desktop
+      const sizeMultiplier = isMobile ? 1.6 : 1; // make confetti larger on mobile
+
+      function spawnCorner(x,y,dirX) {
+        const count = Math.round(perCorner * (Math.random()*0.6 + 0.8));
+        for (let i=0;i<count;i++) {
+          const sz = (Math.random()*14 + 10) * sizeMultiplier;
+          particles.push({
+            x: x + (Math.random()*80-40),
+            y: y + (Math.random()*30-15),
+            vx: ((Math.random()*4) + 2) * dirX,
+            vy: -(Math.random()*9 + 8),
+            size: sz,
+            shape: Math.random() < 0.5 ? 'rect' : (Math.random() < 0.5 ? 'circle' : 'tri'),
+            color: colors[Math.floor(Math.random()*colors.length)],
+            rot: Math.random()*360,
+            rotSpeed: (Math.random()*8 - 4) * 0.05,
+            life: 4000 + Math.random()*1800,
+            born: performance.now()
+          });
+        }
+      }
+
+      // spawn from bottom-left and bottom-right; make bursts feel dynamic
+      spawnCorner(36, h - 8, 1);
+      setTimeout(()=> spawnCorner(w - 36, h - 8, -1), 80);
+
+      let last = performance.now();
+      function frame(now) {
+        const dt = now - last; last = now;
+        // clear with slight alpha to produce cleaner motion
+        ctx.clearRect(0,0,w, h);
+        for (let i = particles.length -1; i >= 0; i--) {
+          const p = particles[i];
+          const age = now - p.born;
+          if (age > p.life || p.y > h + 80) {
+            particles.splice(i,1);
+            continue;
+          }
+          // physics
+          const gravity = isMobile ? 0.35 : 0.42;
+          p.vy += gravity * (dt/16.67);
+          p.x += p.vx * (dt/16.67);
+          p.y += p.vy * (dt/16.67);
+          p.rot += p.rotSpeed * (dt/16.67);
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot * Math.PI / 180);
+          ctx.fillStyle = p.color;
+          const s = p.size;
+          if (p.shape === 'rect') {
+            ctx.fillRect(-s/2, -s/2, s, s*0.6);
+          } else if (p.shape === 'circle') {
+            ctx.beginPath(); ctx.arc(0,0,s*0.42,0,Math.PI*2); ctx.fill();
+          } else { // triangle
+            ctx.beginPath(); ctx.moveTo(0, -s/2); ctx.lineTo(s/2, s/2); ctx.lineTo(-s/2, s/2); ctx.closePath(); ctx.fill();
+          }
+          ctx.restore();
+        }
+        if (particles.length > 0) {
+          requestAnimationFrame(frame);
+        } else {
+          // clear fully after a short delay
+          setTimeout(()=>{ ctx.clearRect(0,0,w,h); }, 220);
+        }
+      }
+      requestAnimationFrame(frame);
+
+      // adjust canvas on resize
+      let resizeTO;
+      function onResize() {
+        clearTimeout(resizeTO);
+        resizeTO = setTimeout(()=>{
+          w = window.innerWidth; h = window.innerHeight;
+          canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+          canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+          ctx.setTransform(dpr,0,0,dpr,0,0);
+        }, 120);
+      }
+      window.addEventListener('resize', onResize);
+    }
+
     // --- RESERVATION FORM SUBMISSION LOGIC ---
     const reservationForm = document.getElementById('reservationForm');
     const reservationResponseDiv = document.getElementById('reservationResponse');
@@ -3944,6 +4375,42 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
     if (reservationForm) {
       reservationForm.addEventListener('submit', function(e) {
         e.preventDefault();
+
+        // Client-side validations: phone format, 2-hour lead time, opening hours
+        const phoneInput = document.getElementById('resPhone');
+        const dateInput = document.getElementById('resDate');
+        const timeInput = document.getElementById('resTime');
+        const phoneRaw = phoneInput ? phoneInput.value || '' : '';
+        const digits = (phoneRaw.match(/\d/g) || []).length;
+        if (digits < 10 || digits > 15) {
+          showToast('Please enter a valid phone number (include country code if needed).', 'error');
+          return;
+        }
+
+        const dateVal = dateInput ? dateInput.value : '';
+        const timeVal = timeInput ? timeInput.value : '';
+        if (!dateVal || !timeVal) {
+          showToast('Please select a reservation date and time.', 'error');
+          return;
+        }
+
+        const selected = new Date(dateVal + 'T' + timeVal);
+        const now = new Date();
+        const minAllowed = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+        if (selected < minAllowed) {
+          showToast('Reservations must be made at least 2 hours in advance.', 'error');
+          return;
+        }
+
+        // Opening hours: Mon-Fri 17:00-23:00, Sat-Sun 12:00-23:00
+        const day = selected.getDay(); // 0 Sun .. 6 Sat
+        const hhmm = selected.toTimeString().slice(0,5);
+        let opens = '17:00', closes = '23:00';
+        if (day === 0 || day === 6) { opens = '12:00'; }
+        if (hhmm < opens || hhmm >= closes) {
+          showToast('Selected time is outside of our opening hours. Please choose a different time.', 'error');
+          return;
+        }
 
         reservationResponseDiv.style.display = 'block';
         reservationResponseDiv.style.color = '#333';
@@ -3972,8 +4439,8 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
             
             // This part will only run if the server response was OK (status 200) AND the JSON is valid
             if (data.success) {
-              // Show success toast
-              showToast(data.message, false);
+              // Show confetti and success modal instead of toast
+              showConfettiAndModal(data.message || 'Reservation confirmed!');
               reservationForm.reset();
             } else {
               // Show error toast

@@ -197,7 +197,14 @@ function getConfirmationEmailTemplate($customer_name, $reservation_date, $reserv
 }
 
 function getRejectionEmailTemplate($customer_name, $reservation_date, $reservation_time, $num_guests, $reason = '') {
-    $reason_text = $reason ? "<br><strong>Reason:</strong> {$reason}" : '';
+    $reason_block = '';
+    if ($reason) {
+        $reason_block = "
+        <div style='background: rgba(231, 76, 60, 0.1); border-left: 4px solid #e74c3c; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;'>
+            <p style='color: #e74c3c; margin: 0 0 5px 0; font-size: 15px;'><strong>Reason:</strong></p>
+            <p style='color: #666; margin: 0; font-size: 14px; line-height: 1.5;'>{$reason}</p>
+        </div>";
+    }
     
     return "
     <!DOCTYPE html>
@@ -207,44 +214,73 @@ function getRejectionEmailTemplate($customer_name, $reservation_date, $reservati
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
         <title>Booking Update - Haveli Restaurant</title>
     </head>
-    <body style='margin: 0; padding: 0; font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);'>
-        <div style='max-width: 500px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 15px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1);'>
+    <body style='margin: 0; padding: 0; font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa;'>
+        <div style='max-width: 600px; margin: 20px auto; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
             
             <!-- Header -->
-            <div style='background: linear-gradient(45deg, #fd79a8, #fdcb6e); padding: 25px 20px; text-align: center;'>
-                <h1 style='color: white; margin: 0; font-size: 24px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+            <div style='background: linear-gradient(45deg, #2c3e50, #e74c3c); padding: 30px 20px; text-align: center;'>
+                <h1 style='color: white; margin: 0; font-size: 28px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2);'>
                     🏛️ HAVELI RESTAURANT
                 </h1>
-                <p style='color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;'>
+                <p style='color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 16px; letter-spacing: 1px;'>
                     Booking Update
                 </p>
             </div>
             
             <!-- Content -->
-            <div style='padding: 25px 20px;'>
-                <div style='text-align: center; margin-bottom: 20px;'>
-                    <h2 style='color: #e74c3c; margin: 0; font-size: 18px;'>
-                        😔 We're Sorry, {$customer_name}
+            <div style='padding: 30px 25px; background: white;'>
+                <!-- Booking Details -->
+                <div style='text-align: center; margin-bottom: 25px;'>
+                    <h2 style='color: #2c3e50; margin: 0 0 15px 0; font-size: 22px; font-weight: 600;'>
+                        We're Sorry, {$customer_name}
                     </h2>
-                    <p style='color: #666; margin: 10px 0 0 0; font-size: 14px;'>
-                        Unfortunately, we cannot confirm your booking for {$reservation_date} at {$reservation_time}{$reason_text}
+                    <p style='color: #666; margin: 0; font-size: 16px; line-height: 1.6;'>
+                        Unfortunately, we are unable to accommodate your reservation for:
                     </p>
                 </div>
                 
-                <div style='background: #e74c3c; color: white; padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0;'>
-                    <p style='margin: 0; font-size: 14px;'>
-                        📞 Please call us at <strong>01753297560</strong><br>
-                        We'd love to find you an alternative time!
+                <!-- Reservation Details Card -->
+                <div style='background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;'>
+                    <p style='color: #2c3e50; margin: 0 0 8px 0; font-size: 18px;'>
+                        <strong>📅 {$reservation_date}</strong>
+                    </p>
+                    <p style='color: #2c3e50; margin: 0 0 8px 0; font-size: 18px;'>
+                        <strong>🕒 {$reservation_time}</strong>
+                    </p>
+                    <p style='color: #2c3e50; margin: 0; font-size: 18px;'>
+                        <strong>👥 {$num_guests} guests</strong>
                     </p>
                 </div>
                 
-                <div style='text-align: center; margin-top: 20px;'>
-                    <p style='color: #666; font-size: 14px; margin: 0;'>
-                        Thank you for choosing Haveli 🙏<br>
-                        <span style='color: #999; font-size: 12px;'>The Haveli Restaurant Team</span>
+                {$reason_block}
+                
+                <!-- Alternative Booking Box -->
+                <div style='background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 30px 0; box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2);'>
+                    <h3 style='margin: 0 0 15px 0; font-size: 18px; font-weight: 600;'>
+                        Would You Like an Alternative Time? 🗓️
+                    </h3>
+                    <p style='margin: 0 0 15px 0; font-size: 15px; line-height: 1.5;'>
+                        Call us directly and we'll help find a perfect slot for you!
+                    </p>
+                    <p style='margin: 0; font-size: 20px; font-weight: 700;'>
+                        📞 01753 297560
+                    </p>
+                </div>
+                
+                <!-- Footer -->
+                <div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;'>
+                    <p style='color: #666; font-size: 15px; margin: 0 0 8px 0;'>
+                        Thank you for considering Haveli Restaurant
+                    </p>
+                    <p style='color: #999; font-size: 13px; margin: 0;'>
+                        <em>We hope to serve you soon!</em><br>
+                        The Haveli Team ✨
                     </p>
                 </div>
             </div>
+            
+            <!-- Bottom flourish -->
+            <div style='height: 6px; background: linear-gradient(45deg, #2c3e50, #e74c3c);'></div>
         </div>
     </body>
     </html>";

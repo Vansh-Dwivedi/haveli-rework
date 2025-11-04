@@ -39,8 +39,30 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
     <!-- Professional CSS Architecture -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="admin-dashboard.css" rel="stylesheet">
+    <link href="admin-dashboard.modal.css" rel="stylesheet">
 </head>
 <body>
+    <script>
+        // Provide a lightweight fallback so inline onclicks don't throw if the main script
+        // hasn't loaded yet. The full implementation (`window.showSection`) is defined
+        // later in the main script — this stub simply updates the hash so navigation still works.
+        window.showSection = window.showSection || function(sectionId, event) {
+            if (event && event.preventDefault) event.preventDefault();
+            try {
+                // Try to activate the section if DOM is ready
+                var el = document.getElementById(sectionId);
+                if (el) {
+                    document.querySelectorAll('.content-section').forEach(function(s){ s.classList.remove('active'); });
+                    el.classList.add('active');
+                } else {
+                    // Fallback: set hash to allow manual navigation
+                    location.hash = sectionId;
+                }
+            } catch (e) {
+                // If anything fails, silently ignore — this is just a safe stub
+            }
+        };
+    </script>
     <!-- Mobile Menu Toggle -->
     <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
         <i class="fas fa-bars"></i>
@@ -89,6 +111,12 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
                     <a href="#analytics" class="nav-link" onclick="showSection('analytics')">
                         <i class="fas fa-chart-bar"></i>
                         Analytics
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#blog" class="nav-link" onclick="showSection('blog')">
+                        <i class="fas fa-blog"></i>
+                        Blog Admin
                     </a>
                 </li>
                 <li class="nav-item">
@@ -336,6 +364,20 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
                     </div>
                 </div>
             </div>
+            
+            <!-- Blog Admin Section -->
+            <div id="blog" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i class="fas fa-blog"></i> Blog Administration</h2>
+                    <div>
+                        <button class="btn" onclick="reloadBlogFrame()"><i class="fas fa-sync"></i> Reload</button>
+                        <a class="btn" href="admin_blog.php" target="_blank">Open in new tab</a>
+                    </div>
+                </div>
+                <div style="padding:18px;">
+                    <iframe id="admin-blog-frame" src="admin_blog.php" style="width:100%;height:820px;border:0;border-radius:8px;box-shadow:0 8px 30px rgba(2,6,23,0.08);"></iframe>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -346,6 +388,52 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
     
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+    
+    <!-- Refusal Modal -->
+    <div id="refusalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-times-circle"></i> Refuse Reservation
+                </h2>
+            </div>
+            <div class="modal-body">
+                <form id="refusalForm">
+                    <input type="hidden" id="refusalReservationId" value="">
+                    
+                    <div class="form-group">
+                        <label for="refusalReason">Select Reason:</label>
+                        <select id="refusalReason" class="form-control">
+                            <option value="">-- Select a reason --</option>
+                            <option value="fully_booked">Fully booked for requested time</option>
+                            <option value="kitchen_capacity">Kitchen at capacity for this slot</option>
+                            <option value="special_event">Private event/Special occasion already booked</option>
+                            <option value="custom">Other (specify below)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="customReasonGroup" class="form-group" style="display: none;">
+                        <label for="customReason">Custom Reason:</label>
+                        <textarea id="customReason" class="form-control" placeholder="Please provide details..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="internalNote">Internal Note (optional):</label>
+                        <textarea id="internalNote" class="form-control" placeholder="Add a note for staff only (will not be sent to customer)"></textarea>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn" onclick="closeRefusalModal()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Confirm Refusal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Robust fetch helper that ensures JSON and reports meaningful errors
@@ -412,6 +500,13 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
             initializeMobileFeatures();
             optimizeForMobile();
             enhanceTouchExperience();
+            
+            // Initialize modal handlers
+            document.getElementById('refusalReason').addEventListener('change', function() {
+                const customGroup = document.getElementById('customReasonGroup');
+                customGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+            });
+
         });
         
         // Mobile Menu Functions
@@ -524,39 +619,7 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
             }
         }
         
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all nav links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Add active class to clicked nav link
-            event.target.classList.add('active');
-            
-            // Load section-specific content
-            switch(sectionId) {
-                case 'reservations':
-                    loadReservations();
-                    break;
-                case 'orders':
-                    loadOrders();
-                    break;
-                case 'email-system':
-                    loadEmailSystem();
-                    break;
-                case 'analytics':
-                    loadAnalytics();
-                    break;
-            }
-        }
+        
         
         async function refreshDashboard() {
             try {
@@ -640,6 +703,9 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
                                 <td>
                                     <button class="btn btn-success btn-sm" onclick="confirmReservation(${reservation.id})" ${reservation.status === 'confirmed' ? 'disabled' : ''}>
                                         <i class="fas fa-check"></i> Confirm
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="showRefusalModal(${reservation.id})" ${reservation.status === 'refused' ? 'disabled' : ''} style="margin-left:8px;">
+                                        <i class="fas fa-times"></i> Refuse
                                     </button>
                                 </td>
                             </tr>
@@ -954,6 +1020,159 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
             }
         }
         
+        // Refusal form handler
+        async function handleRefusalFormSubmit(e) {
+            e.preventDefault();
+            
+            const reservationId = document.getElementById('refusalReservationId').value;
+            const reasonType = document.getElementById('refusalReason').value;
+            const customReason = document.getElementById('customReason').value;
+            const internalNote = document.getElementById('internalNote').value;
+            
+            if (!reasonType) {
+                showToast('Please select a reason for refusal', 'warning');
+                return;
+            }
+            
+            if (reasonType === 'custom' && !customReason.trim()) {
+                showToast('Please provide a custom reason', 'warning');
+                return;
+            }
+            
+            // Get customer-friendly reason text
+            let customerReason = '';
+            switch(reasonType) {
+                case 'fully_booked':
+                    customerReason = 'We are fully booked for your requested time slot.';
+                    break;
+                case 'kitchen_capacity':
+                    customerReason = 'Our kitchen is at maximum capacity for this time slot.';
+                    break;
+                case 'special_event':
+                    customerReason = 'We have a private event/special occasion already scheduled.';
+                    break;
+                case 'custom':
+                    customerReason = customReason;
+                    break;
+            }
+            
+            closeRefusalModal();
+            await refuseReservation(reservationId, customerReason, internalNote);
+        }
+
+        // Refusal Modal Functions
+        function showRefusalModal(reservationId) {
+            document.getElementById('refusalReservationId').value = reservationId;
+            document.getElementById('refusalReason').value = '';
+            document.getElementById('customReason').value = '';
+            document.getElementById('internalNote').value = '';
+            document.getElementById('customReasonGroup').style.display = 'none';
+            document.getElementById('refusalModal').style.display = 'block';
+            
+            // Ensure we only have one submit event listener
+            const form = document.getElementById('refusalForm');
+            form.removeEventListener('submit', handleRefusalFormSubmit);
+            form.addEventListener('submit', handleRefusalFormSubmit);
+        }
+        
+        function closeRefusalModal() {
+            document.getElementById('refusalModal').style.display = 'none';
+        }
+        
+        // Handle reason type selection
+        document.getElementById('refusalReason').addEventListener('change', function() {
+            const customGroup = document.getElementById('customReasonGroup');
+            customGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        // Make sure showSection is defined at the top level
+        window.showSection = function(sectionId, event) {
+            if (event) {
+                event.preventDefault();
+            }
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked nav link
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Load section-specific content
+            switch(sectionId) {
+                case 'reservations':
+                    loadReservations();
+                    break;
+                case 'orders':
+                    loadOrders();
+                    break;
+                case 'email-system':
+                    loadEmailSystem();
+                    break;
+                case 'analytics':
+                    loadAnalytics();
+                    break;
+            }
+        };
+
+
+        async function refuseReservation(id, reason = '', internalNote = '') {
+            showLoading();
+            try {
+                // Log the data being sent for debugging
+                console.log('Refusing reservation:', {
+                    id: id,
+                    reason: reason,
+                    internalNote: internalNote
+                });
+                
+                const result = await fetchJsonSafe('admin_dashboard_api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        'action': 'refuse_reservation',
+                        'reservation_id': id,
+                        'reason': reason,
+                        'internal_note': internalNote
+                    })
+                });
+
+                if (result.success) {
+                    showToast('Reservation refused and customer notified.', 'success');
+                    // process email queue in background
+                    try {
+                        fetchJsonSafe('process_email_queue.php', {}, 20000)
+                            .then(processData => {
+                                if (processData && !processData.success) {
+                                    showToast('Email queue processed with issues: ' + (processData.message || ''), 'warning');
+                                }
+                            })
+                            .catch(err => { reportFetchError('Background email processing', err); });
+                    } catch (e) { /* ignore */ }
+                    loadReservations();
+                    refreshDashboard();
+                } else {
+                    showToast('Error: ' + result.message, 'error');
+                    // Re-enable the refuse button since the operation failed
+                    loadReservations(); // Reload to restore the button state
+                }
+            } catch (error) {
+                reportFetchError('Refuse reservation', error);
+            } finally {
+                hideLoading();
+            }
+        }
+        
         async function processEmailQueue() {
             showLoading();
             
@@ -1033,6 +1252,13 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
+        }
+
+        // Reloads the blog iframe inside the dashboard (adds cache-bust)
+        function reloadBlogFrame() {
+            var f = document.getElementById('admin-blog-frame');
+            if (!f) return;
+            f.src = 'admin_blog.php?cb=' + Date.now();
         }
     </script>
 </body>

@@ -99,6 +99,10 @@
   --space-16: 4rem;     /* 64px */
   --space-20: 5rem;     /* 80px */
   
+  /* Modal */
+  --modal-backdrop: rgba(15, 23, 42, 0.7);
+  --modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
   /* Border Radius */
   --radius-sm: 0.25rem;   /* 4px */
   --radius-md: 0.375rem;  /* 6px */

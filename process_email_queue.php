@@ -237,6 +237,14 @@ try {
                 $data['reservation_time'] ?? '',
                 $data['num_guests'] ?? ''
             );
+        } elseif ($template === 'rejection') {
+            $htmlBody = getRejectionEmailTemplate(
+                $data['customer_name'] ?? 'Guest',
+                $data['reservation_date'] ?? '',
+                $data['reservation_time'] ?? '',
+                $data['num_guests'] ?? '',
+                $data['reason'] ?? ''
+            );
         } else {
             // Unknown template: send plain message
             $htmlBody = '<p>Thank you from Haveli Restaurant.</p>';

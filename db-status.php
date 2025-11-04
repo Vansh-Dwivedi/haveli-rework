@@ -100,7 +100,7 @@ try {
     $pdo = getDBConnection();
     $attempts[] = [
         'label' => 'db_config (getDBConnection)',
-        'dsn' => 'mysql:host=localhost;dbname=haveli_db;charset=utf8',
+        'dsn' => 'mysql:host=localhost;dbname=haveli_restaurant;charset=utf8',
         'user' => 'from db_config',
         'connected' => true,
         'server_version' => $pdo->getAttribute(PDO::ATTR_SERVER_VERSION),
@@ -125,7 +125,7 @@ try {
 // Attempt 2: API legacy default (root with no password) — often disabled
 $attempts[] = try_pdo_connect(
     'API legacy (root, no password)',
-    'mysql:host=localhost;dbname=haveli_db;charset=utf8',
+    'mysql:host=localhost;dbname=haveli_restaurant;charset=utf8',
     'root',
     ''
 );
