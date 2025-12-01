@@ -172,15 +172,27 @@ try {
     "openingHoursSpecification": [
       {
         "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        "opens": "17:00",
+        "dayOfWeek": "Monday",
+        "opens": "08:00",
+        "closes": "17:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "22:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
         "closes": "23:00"
       },
       {
         "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Saturday", "Sunday"],
-        "opens": "12:00",
-        "closes": "23:00"
+        "dayOfWeek": "Sunday",
+        "opens": "09:00",
+        "closes": "21:00"
       }
     ],
     "servesCuisine": ["Indian", "Asian"],
@@ -665,7 +677,7 @@ try {
           <a href="#reservations" class="magnetic-circle" id="shape2">Reservations</a>
           <a href="#catering" target="_blank" rel="noopener noreferrer" class="magnetic-circle"
             id="shape4">Catering</a>
-          <a href="#" class="magnetic-circle" id="shape5" onclick="openModal()">Loyalty Cards</a>
+          <a href="#" class="magnetic-circle" id="shape5" onclick="openModal()">Corporate Events</a>
           <a href="#parking" class="magnetic-square" id="shape3">Parking</a>
           <a href="#contact" class="magnetic-square" id="shape6">Contact Us</a>
         </div>
@@ -2963,9 +2975,63 @@ try {
   <div id="loyaltyModal" class="modal2">
     <div class="modal-content2">
       <span class="close2" onclick="closeModal()">&times;</span>
-      <h2 class="modal-title2">Loyalty Cards Are Coming Soon!</h2>
-      <p class="modal-description2">Get ready for exclusive rewards, special discounts, and a whole lot more. Stay tuned
-        for the official launch!</p>
+      <h2 class="modal-title2">Corporate Events</h2>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <p style="font-size: 18px; font-weight: 600; color: #b02a2a; margin-bottom: 10px;">HAVELI CORPORATE EVENTS</p>
+        <p style="font-size: 16px; font-style: italic; color: #333; margin-bottom: 20px;">Indian Dining Where Tradition Meets Innovation</p>
+        <p style="font-size: 14px; color: #555; margin-bottom: 25px;">Serving authentic Indian flavours with a modern twist in the heart of the UK</p>
+      </div>
+      
+      <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+        <h3 style="font-size: 18px; color: #b02a2a; margin-bottom: 15px; text-align: center;">Why Choose Haveli for Your Corporate Events?</h3>
+        
+        <div style="margin-bottom: 15px;">
+          <h4 style="font-size: 16px; color: #333; margin-bottom: 8px;">Tradition Reborn</h4>
+          <p style="font-size: 14px; color: #555; line-height: 1.5;">We honour centuries of Indian culinary legacy while infusing it with contemporary elegance — bridging heritage and haute cuisine.</p>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <h4 style="font-size: 16px; color: #333; margin-bottom: 8px;">Culinary Velocity, Never Rushed</h4>
+          <p style="font-size: 14px; color: #555; line-height: 1.5;">Speed meets sophistication. Enjoy gourmet dishes crafted with precision, delivered with the swiftness modern life demands.</p>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <h4 style="font-size: 16px; color: #333; margin-bottom: 8px;">Balanced Boldness</h4>
+          <p style="font-size: 14px; color: #555; line-height: 1.5;">From mellow warmth to fiery boldness — our spice spectrum is tailored to every temperament, engineered to delight and surprise.</p>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <h4 style="font-size: 16px; color: #333; margin-bottom: 8px;">A Place, A Pulse, A People</h4>
+          <p style="font-size: 14px; color: #555; line-height: 1.5;">More than a dining space — Haveli is a communal experience. Vibrant, unpretentious, and alive with stories shared over naan.</p>
+        </div>
+      </div>
+      
+      <div style="background: #f0f8ff; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #b02a2a;">
+        <h3 style="font-size: 18px; color: #b02a2a; margin-bottom: 15px; text-align: center;">Tailored Corporate Experiences</h3>
+        <p style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px;">All corporate events are individually tailored and quoted to meet your specific requirements.</p>
+        <p style="font-size: 14px; color: #333; line-height: 1.5;">Please call to discuss or visit our website to complete our contact form and let us know your details and full package required.</p>
+        <p style="text-align: center; margin-top: 15px;">
+          <a href="https://www.haveli.co.uk" target="_blank" style="color: #b02a2a; font-weight: 600; text-decoration: none; font-size: 16px;">www.haveli.co.uk</a>
+        </p>
+      </div>
+      
+      <div style="text-align: center; padding: 15px; background: #fff9e6; border-radius: 10px;">
+        <p style="font-size: 14px; color: #333; line-height: 1.5; font-weight: 600;">You will be assured of our full commitment to:</p>
+        <div style="display: flex; justify-content: space-around; margin-top: 10px; flex-wrap: wrap;">
+          <div style="text-align: center; margin: 10px;">
+            <i class="fas fa-star" style="color: #b02a2a; font-size: 20px; margin-bottom: 5px;"></i>
+            <p style="font-size: 14px; color: #333; margin: 0;">First Class Service</p>
+          </div>
+          <div style="text-align: center; margin: 10px;">
+            <i class="fas fa-utensils" style="color: #b02a2a; font-size: 20px; margin-bottom: 5px;"></i>
+            <p style="font-size: 14px; color: #333; margin: 0;">Premium Quality</p>
+          </div>
+          <div style="text-align: center; margin: 10px;">
+            <i class="fas fa-tag" style="color: #b02a2a; font-size: 20px; margin-bottom: 5px;"></i>
+            <p style="font-size: 14px; color: #333; margin: 0;">Best Possible Prices</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="loadingOverlay"
@@ -3016,7 +3082,7 @@ try {
       <li><a href="#parking" class="fullscreen-nav-link">Parking</a></li>
       <li><a href="#interactive-menu" class="fullscreen-nav-link">Order Online</a></li>
       <li><a href="#reservations" class="fullscreen-nav-link">Reservations</a></li>
-      <li><a href="#" class="fullscreen-nav-link" onclick="openModal()">Loyalty Cards</a></li>
+      <li><a href="#" class="fullscreen-nav-link" onclick="openModal()">Corporate Events</a></li>
       <li><a href="#catering" class="fullscreen-nav-link">Private Banqueting & Catering</a></li>
       <li><a href="#faqs" class="fullscreen-nav-link">FAQs</a></li>
       <li><a href="#testimonials" class="fullscreen-nav-link">Testimonials</a></li>
@@ -4207,7 +4273,7 @@ try {
       const toastClose = toastNotification.querySelector('.toast-close');
 
       // Set message and icon
-      toastMessage.textContent = message;
+      toastMessage.innerHTML = message;
       toastIcon.textContent = isError ? '✗' : '✓';
       
       // Set appropriate styling
@@ -4376,82 +4442,40 @@ try {
       reservationForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Client-side validations: phone format, 2-hour lead time, opening hours
-        const phoneInput = document.getElementById('resPhone');
-        const dateInput = document.getElementById('resDate');
-        const timeInput = document.getElementById('resTime');
-        const phoneRaw = phoneInput ? phoneInput.value || '' : '';
-        const digits = (phoneRaw.match(/\d/g) || []).length;
-        if (digits < 10 || digits > 15) {
-          showToast('Please enter a valid phone number (include country code if needed).', 'error');
-          return;
-        }
-
-        const dateVal = dateInput ? dateInput.value : '';
-        const timeVal = timeInput ? timeInput.value : '';
-        if (!dateVal || !timeVal) {
-          showToast('Please select a reservation date and time.', 'error');
-          return;
-        }
-
-        const selected = new Date(dateVal + 'T' + timeVal);
-        const now = new Date();
-        const minAllowed = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-        if (selected < minAllowed) {
-          showToast('Reservations must be made at least 2 hours in advance.', 'error');
-          return;
-        }
-
-        // Opening hours: Mon-Fri 17:00-23:00, Sat-Sun 12:00-23:00
-        const day = selected.getDay(); // 0 Sun .. 6 Sat
-        const hhmm = selected.toTimeString().slice(0,5);
-        let opens = '17:00', closes = '23:00';
-        if (day === 0 || day === 6) { opens = '12:00'; }
-        if (hhmm < opens || hhmm >= closes) {
-          showToast('Selected time is outside of our opening hours. Please choose a different time.', 'error');
-          return;
-        }
-
         reservationResponseDiv.style.display = 'block';
         reservationResponseDiv.style.color = '#333';
         reservationResponseDiv.textContent = 'Sending request...';
 
         const formData = new FormData(this);
 
-        // New, improved fetch code with better error handling
         fetch('submit_reservations.php', {
             method: 'POST',
             body: formData
           })
           .then(response => {
-            // FIRST, check if the server responded with an error status (like 404 or 500)
             if (!response.ok) {
-              // If the response is not ok, we create our own error to be caught by the .catch block
-              // This will give us a clear message like "Error: 404 Not Found"
               throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
             }
-            // If the response is OK (status 200), we then proceed to parse it as JSON
             return response.json();
           })
           .then(data => {
-            // Hide the loading message
             reservationResponseDiv.style.display = 'none';
             
-            // This part will only run if the server response was OK (status 200) AND the JSON is valid
             if (data.success) {
-              // Show confetti and success modal instead of toast
               showConfettiAndModal(data.message || 'Reservation confirmed!');
               reservationForm.reset();
             } else {
-              // Show error toast
-              showToast('Error: ' + data.message, true);
+              // If message is HTML, don't prepend "Error: "
+              if (data.message && data.message.trim().startsWith('<')) {
+                showToast(data.message, true);
+              } else {
+                showToast('Error: ' + data.message, true);
+              }
             }
           })
           .catch(error => {
-            // Hide the loading message
             reservationResponseDiv.style.display = 'none';
             
-            // Show error toast
             let errorMessage = 'Error: ' + error.message;
             if (error.message.includes('404')) {
               errorMessage += ' - The reservation system is temporarily unavailable.';

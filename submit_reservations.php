@@ -1,200 +1,432 @@
 <?php
-// No need for the debug lines anymore unless an issue persists
-// ini_set('display_errors', 1);
-// error_reporting(E_ALL);
-
 header('Content-Type: application/json');
 
-// --- Validation ---
-if (
-    empty($_POST['name']) || 
-    empty($_POST['phone']) || 
-    empty($_POST['email']) ||
-    empty($_POST['date']) || 
-    empty($_POST['time']) || 
-    empty($_POST['guests'])
-) {
-    echo json_encode(['success' => false, 'message' => 'Please fill in all required fields.']);
-    exit;
+// ✅ Enable full PHP error display
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+/**
+ * ========================================
+ * RESERVATION SYSTEM - COMPLETE REBUILD
+ * ========================================
+ * Handles: Validation, Opening Hours, Advance Booking, Database Storage
+ * Does NOT handle: Email sending (separate system)
+ */
+
+require_once __DIR__ . '/queue_helpers.php';
+
+// ========== CONFIGURATION ==========
+const TIMEZONE = 'Europe/London';
+const MIN_ADVANCE_HOURS = 2;
+const ADMIN_EMAIL = 'info@haveli.co.uk';
+
+// Operating Hours: Mon 8-5PM, Tue-Fri 8-10PM, Sat 9-11PM, Sun 9-9PM
+const OPERATING_HOURS = [
+    0 => ['opens' => '09:00', 'closes' => '21:00', 'display' => '9:00 AM - 9:00 PM'],     // Sunday
+    1 => ['opens' => '08:00', 'closes' => '17:00', 'display' => '8:00 AM - 5:00 PM'],     // Monday
+    2 => ['opens' => '08:00', 'closes' => '22:00', 'display' => '8:00 AM - 10:00 PM'],    // Tuesday
+    3 => ['opens' => '08:00', 'closes' => '22:00', 'display' => '8:00 AM - 10:00 PM'],    // Wednesday
+    4 => ['opens' => '08:00', 'closes' => '22:00', 'display' => '8:00 AM - 10:00 PM'],    // Thursday
+    5 => ['opens' => '08:00', 'closes' => '22:00', 'display' => '8:00 AM - 10:00 PM'],    // Friday
+    6 => ['opens' => '09:00', 'closes' => '23:00', 'display' => '9:00 AM - 11:00 PM'],    // Saturday
+];
+
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * Trigger the email processor asynchronously so customer emails send immediately.
+ */
+function triggerEmailProcessing() {
+    if (function_exists('exec')) {
+        $phpPath = PHP_BINARY;
+        $scriptPath = __DIR__ . '/process_email_queue.php';
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            exec("start /B \"\" \"$phpPath\" \"$scriptPath\" > nul 2>&1");
+        } else {
+            exec("$phpPath \"$scriptPath\" > /dev/null 2>&1 &");
+        }
+    }
+
+    $triggerFile = __DIR__ . '/email_trigger_' . time() . '.flag';
+    @file_put_contents($triggerFile, 'process_now');
 }
 
-if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'message' => 'Please provide a valid email address.']);
-    exit;
+// ========== VALIDATION FUNCTIONS ==========
+
+/**
+ * Validates required fields
+ */
+function validateRequiredFields() {
+    $required = ['name', 'phone', 'email', 'date', 'time', 'guests'];
+    foreach ($required as $field) {
+        if (empty($_POST[$field])) {
+            return ['valid' => false, 'message' => "Missing required field: $field"];
+        }
+    }
+    return ['valid' => true];
 }
 
-// Validate phone (require 10-15 digits after removing non-digit chars)
-$raw_phone = $_POST['phone'] ?? '';
-$digits = preg_replace('/\D+/', '', $raw_phone);
-if (strlen($digits) < 10 || strlen($digits) > 15) {
-    echo json_encode(['success' => false, 'message' => 'Please provide a valid phone number (include country code if outside UK).']);
-    exit;
+/**
+ * Validates email format
+ */
+function validateEmail($email) {
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['valid' => false, 'message' => 'Invalid email address format.'];
+    }
+    return ['valid' => true];
 }
 
-// Parse reservation date/time and enforce 2-hour lead time (UK time) and opening hours
-$reservation_date = $_POST['date'];
-$reservation_time = $_POST['time'];
+/**
+ * Validates phone number (10-15 digits)
+ */
+function validatePhone($phone) {
+    $digits = preg_replace('/\D+/', '', $phone);
+    if (strlen($digits) < 10 || strlen($digits) > 15) {
+        return ['valid' => false, 'message' => 'Phone number must contain 10-15 digits.'];
+    }
+    return ['valid' => true];
+}
 
-// Use Europe/London timezone to correctly handle UK GMT/BST
-$ukTz = new DateTimeZone('Europe/London');
-$dt = DateTime::createFromFormat('Y-m-d H:i', $reservation_date . ' ' . $reservation_time, $ukTz);
-if (!$dt) {
-    // fallback to generic parser but force UK timezone
+/**
+ * Parses and validates date/time format
+ */
+function validateDateTime($date, $time, $timezone) {
     try {
-        $dt = new DateTime($reservation_date . ' ' . $reservation_time, $ukTz);
+        $tz = new DateTimeZone($timezone);
+        $dt = DateTime::createFromFormat('Y-m-d H:i', "$date $time", $tz);
+        
+        if (!$dt) {
+            return [
+                'valid' => false,
+                'message' => 'Invalid date or time format. Expected YYYY-MM-DD and HH:MM.'
+            ];
+        }
+        
+        return ['valid' => true, 'datetime' => $dt];
     } catch (Exception $e) {
-        $dt = false;
+        return ['valid' => false, 'message' => 'Error parsing date/time.'];
     }
 }
-if (!$dt) {
-    echo json_encode(['success' => false, 'message' => 'Invalid reservation date or time.']);
+
+/**
+ * Validates that reservation is not in the past
+ */
+function validateNotInPast($reservationTime, $currentTime) {
+    if ($reservationTime < $currentTime) {
+        return ['valid' => false, 'message' => 'Reservations cannot be made in the past.'];
+    }
+    return ['valid' => true];
+}
+
+/**
+ * Validates advance booking requirement (20+ hours)
+ */
+function validateAdvanceBooking($reservationTime, $currentTime, $minHours = MIN_ADVANCE_HOURS) {
+    $minAllowed = (clone $currentTime)->modify("+$minHours hours");
+    
+    if ($reservationTime < $minAllowed) {
+        $message = "Reservations must be made at least <strong>$minHours hours</strong> in advance.";
+        return ['valid' => false, 'message' => $message];
+    }
+    return ['valid' => true];
+}
+
+/**
+ * Validates opening hours and returns full debugging info
+ */
+function validateOpeningHours($reservationTime, $currentTime) {
+    $dayOfWeek = (int)$reservationTime->format('w');
+    $dayName = DAYS_OF_WEEK[$dayOfWeek];
+    $hours = OPERATING_HOURS[$dayOfWeek];
+    
+    // Create DateTime objects for opening and closing times on the reservation date
+    $tz = new DateTimeZone(TIMEZONE);
+    $dateStr = $reservationTime->format('Y-m-d');
+    
+    $openingTime = DateTime::createFromFormat(
+        'Y-m-d H:i',
+        "$dateStr {$hours['opens']}",
+        $tz
+    );
+    
+    $closingTime = DateTime::createFromFormat(
+        'Y-m-d H:i',
+        "$dateStr {$hours['closes']}",
+        $tz
+    );
+    
+    if (!$openingTime || !$closingTime) {
+        return ['valid' => false, 'message' => 'Error validating opening hours.'];
+    }
+    
+    // Check if reservation is within opening hours
+    if ($reservationTime < $openingTime || $reservationTime > $closingTime) {
+        $selectedTime = $reservationTime->format('g:i A');
+        $selectedDate = $reservationTime->format('l, F j, Y');
+        
+        $debugMessage = 
+            "❌ Selected time is outside opening hours.\n\n" .
+            "📅 Day: $dayName ($selectedDate)\n" .
+            "🕐 Operating Hours: {$hours['display']}\n" .
+            "⏰ You selected: $selectedTime\n\n" .
+            "📊 Debug Information:\n" .
+            "• Current Time (UK): " . $currentTime->format('Y-m-d H:i:s') . "\n" .
+            "• Requested Time (UK): " . $reservationTime->format('Y-m-d H:i:s') . "\n" .
+            "• Opening Time (UK): " . $openingTime->format('Y-m-d H:i:s') . "\n" .
+            "• Closing Time (UK): " . $closingTime->format('Y-m-d H:i:s') . "\n" .
+            "• Day of Week (0-6): $dayOfWeek\n" .
+            "• Time in 24h format: " . $reservationTime->format('H:i') . "\n" .
+            "• Comparison: reservationTime < opening? " . ($reservationTime < $openingTime ? 'YES' : 'NO') . "\n" .
+            "• Comparison: reservationTime > closing? " . ($reservationTime > $closingTime ? 'YES' : 'NO');
+        
+        return ['valid' => false, 'message' => $debugMessage];
+    }
+    
+    return ['valid' => true, 'dayName' => $dayName, 'hours' => $hours];
+}
+
+/**
+ * Main validation orchestrator
+ */
+function validateReservation() {
+    // Check required fields
+    $fieldValidation = validateRequiredFields();
+    if (!$fieldValidation['valid']) {
+        return $fieldValidation;
+    }
+    
+    // Sanitize inputs
+    $name = trim($_POST['name']);
+    $phone = trim($_POST['phone']);
+    $email = trim($_POST['email']);
+    $date = trim($_POST['date']);
+    $time = trim($_POST['time']);
+    $guests = trim($_POST['guests']);
+    
+    // Validate email
+    $emailValidation = validateEmail($email);
+    if (!$emailValidation['valid']) {
+        return $emailValidation;
+    }
+    
+    // Validate phone
+    $phoneValidation = validatePhone($phone);
+    if (!$phoneValidation['valid']) {
+        return $phoneValidation;
+    }
+    
+    // Validate date/time format
+    $dateTimeValidation = validateDateTime($date, $time, TIMEZONE);
+    if (!$dateTimeValidation['valid']) {
+        return $dateTimeValidation;
+    }
+    $reservationTime = $dateTimeValidation['datetime'];
+    
+    // Get current time in UK timezone
+    $tz = new DateTimeZone(TIMEZONE);
+    $currentTime = new DateTime('now', $tz);
+    
+    // Validate not in past
+    $pastValidation = validateNotInPast($reservationTime, $currentTime);
+    if (!$pastValidation['valid']) {
+        return $pastValidation;
+    }
+    
+    // Validate advance booking (20+ hours)
+    $advanceValidation = validateAdvanceBooking($reservationTime, $currentTime);
+    if (!$advanceValidation['valid']) {
+        return $advanceValidation;
+    }
+    
+    // Validate opening hours
+    $hoursValidation = validateOpeningHours($reservationTime, $currentTime);
+    if (!$hoursValidation['valid']) {
+        return $hoursValidation;
+    }
+    
+    // Validate number of guests
+    $guestCount = intval($guests);
+    if ($guestCount < 1 || $guestCount > 20) {
+        return ['valid' => false, 'message' => 'Number of guests must be between 1 and 20.'];
+    }
+    
+    return [
+        'valid' => true,
+        'name' => $name,
+        'phone' => $phone,
+        'email' => $email,
+        'date' => $date,
+        'time' => $time,
+        'guests' => $guestCount,
+        'reservationTime' => $reservationTime,
+        'currentTime' => $currentTime,
+        'dayName' => $hoursValidation['dayName']
+    ];
+}
+
+// ========== EXECUTE VALIDATION ==========
+$validation = validateReservation();
+
+if (!$validation['valid']) {
+    // Return 200 OK so the frontend can parse the JSON error message
+    // instead of the browser treating it as a generic HTTP error
+    http_response_code(200);
+    echo json_encode([
+        'success' => false,
+        'message' => $validation['message']
+    ]);
     exit;
 }
 
-// Ensure reservation is at least 2 hours from now (using UK time)
-$nowUk = new DateTime('now', $ukTz);
-$minAllowed = (clone $nowUk)->modify('+2 hours');
-if ($dt < $minAllowed) {
-    echo json_encode(['success' => false, 'message' => 'Reservations must be made at least 2 hours in advance (UK time).']);
-    exit;
-}
-
-// Opening hours (Mon-Fri 17:00-23:00, Sat-Sun 12:00-23:00) evaluated in UK time
-$day = (int)$dt->format('N'); // 1 (Mon) - 7 (Sun)
-if ($day >=1 && $day <=5) {
-    $opens = '17:00';
-    $closes = '23:00';
-} else {
-    $opens = '12:00';
-    $closes = '23:00';
-}
-
-// Build full DateTime instances for opening/closing on the reservation date
-$openT = DateTime::createFromFormat('Y-m-d H:i', $dt->format('Y-m-d') . ' ' . $opens, $ukTz);
-$closeT = DateTime::createFromFormat('Y-m-d H:i', $dt->format('Y-m-d') . ' ' . $closes, $ukTz);
-if (!$openT || !$closeT) {
-    echo json_encode(['success' => false, 'message' => 'Server error validating opening hours.']);
-    exit;
-}
-
-if ($dt < $openT || $dt >= $closeT) {
-    echo json_encode(['success' => false, 'message' => 'Selected time is outside of our opening hours (UK time). Please choose a different time.']);
-    exit;
-}
+// ========== DATABASE & PROCESSING ==========
 
 try {
     require_once 'db_config.php';
-
     $db = getDBConnection();
     
-    $num_guests = intval($_POST['guests']);
-    $reservation_date = $_POST['date'];
-    $reservation_time = $_POST['time'];
-    $customer_name = htmlspecialchars($_POST['name']);
-    $customer_email = htmlspecialchars($_POST['email']);
-    $customer_phone = htmlspecialchars($_POST['phone']);
-
-    // Insert the reservation as "Pending"
+    // Extract validated data
+    $name = $validation['name'];
+    $phone = $validation['phone'];
+    $email = $validation['email'];
+    $date = $validation['date'];
+    $time = $validation['time'];
+    $guests = $validation['guests'];
+    $currentTime = $validation['currentTime'];
+    $reservationTime = $validation['reservationTime'];
+    $dayName = $validation['dayName'];
+    
+    // Sanitize for storage
+    $name_sanitized = htmlspecialchars($name);
+    $phone_sanitized = htmlspecialchars($phone);
+    $email_sanitized = htmlspecialchars($email);
+    
+    $created_at = $currentTime->format('Y-m-d H:i:s');
+    
+    // ========== STEP 1: Insert into database ==========
     $stmt = $db->prepare(
-        "INSERT INTO reservations (customer_name, phone_number, email, num_guests, reservation_date, reservation_time, status) 
-         VALUES (?, ?, ?, ?, ?, ?, 'Pending')"
+        "INSERT INTO reservations 
+         (customer_name, phone_number, email, num_guests, reservation_date, reservation_time, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?)"
     );
     
-    $stmt->execute([
-        $customer_name,
-        $customer_phone,
-        $customer_email,
-        $num_guests,
-        $reservation_date,
-        $reservation_time
-    ]);
-
-    // Queue customer email for background processing
-    // IMPORTANT: place in project root and use naming/template expected by process_email_queue.php
-    $customer_email_queue = [
-        'customer' => [
-            'to' => $customer_email,
-            'to_name' => $customer_name,
-            'subject' => 'Reservation Request Received - Haveli Restaurant',
-            'template' => 'request', // matches getRequestReceivedTemplate
-            'data' => [
-                'customer_name' => $customer_name,
-                'reservation_date' => $reservation_date,
-                'reservation_time' => $reservation_time,
-                'num_guests' => $num_guests
-            ],
-            'retry_count' => 0,
-            'max_retries' => 3,
-            'created_at' => date('Y-m-d H:i:s'),
-            'priority' => 'normal'
-        ]
+    if (!$stmt->execute([
+        $name_sanitized,
+        $phone_sanitized,
+        $email_sanitized,
+        $guests,
+        $date,
+        $time,
+        $created_at
+    ])) {
+        throw new Exception("Database insertion failed: " . implode(", ", $stmt->errorInfo()));
+    }
+    
+    $reservation_id = $db->lastInsertId();
+    
+    // ========== STEP 2: Create comprehensive log entry ==========
+    $log_entry = [
+        'reservation_id' => $reservation_id,
+        'timestamp' => $created_at,
+        'day_of_week' => $dayName,
+        'customer_name' => $name,
+        'phone' => $phone,
+        'email' => $email,
+        'reservation_date' => $date,
+        'reservation_time' => $time,
+        'num_guests' => $guests,
+        'status' => 'Pending',
+        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+        'validation_passed' => true,
+        'system_notes' => "Advance booking: 2+ hours required | Validated successfully"
     ];
     
-    // Save to root with pattern email_queue_*.json so the processor and dashboard can see it
-    $queue_file_customer = __DIR__ . '/email_queue_request_' . $db->lastInsertId() . '_' . time() . '.json';
-    @file_put_contents($queue_file_customer, json_encode($customer_email_queue, JSON_PRETTY_PRINT));
-
-    // Also queue an admin notification to info@haveli.co.uk
-    $admin_email = 'info@haveli.co.uk';
-    $admin_email_queue = [
+    // Append to JSON log file
+    $log_file = __DIR__ . '/reservation_logs.json';
+    $existing_logs = file_exists($log_file) 
+        ? json_decode(file_get_contents($log_file), true) ?: []
+        : [];
+    
+    $existing_logs[] = $log_entry;
+    
+    $log_write = file_put_contents($log_file, json_encode($existing_logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    if ($log_write === false) {
+        // Log write failure is not critical - don't throw exception
+        error_log("Warning: Could not write to reservation_logs.json");
+    }
+    
+    // ========== STEP 3: Trigger email queue (EMAIL SYSTEM) ==========
+    // Email sending system is handled separately - we create a queue file in the expected format
+    $queue_file = __DIR__ . '/email_queue_request_' . $reservation_id . '_' . time() . '.json';
+    
+    // Format matches what process_email_queue.php expects
+    $email_queue_data = [
         'customer' => [
-            'to' => $admin_email,
-            'to_name' => 'Haveli Reservations',
-            'subject' => 'New Reservation Received',
+            'to' => $email_sanitized,
+            'to_name' => $name_sanitized,
+            'subject' => 'Reservation Request Received - Haveli Restaurant',
             'template' => 'request',
             'data' => [
-                'customer_name' => $customer_name,
-                'reservation_date' => $reservation_date,
-                'reservation_time' => $reservation_time,
-                'num_guests' => $num_guests,
-                'customer_phone' => $customer_phone,
-                'customer_email' => $customer_email
-            ],
-            'retry_count' => 0,
-            'max_retries' => 3,
-            'created_at' => date('Y-m-d H:i:s'),
-            'priority' => 'high'
+                'customer_name' => $name,
+                'reservation_date' => $date,
+                'reservation_time' => $time,
+                'num_guests' => $guests,
+                'customer_email' => $email,
+                'customer_phone' => $phone,
+                'day_of_week' => $dayName
+            ]
         ]
     ];
-    $queue_file_admin = __DIR__ . '/email_queue_admin_' . $db->lastInsertId() . '_' . time() . '.json';
-    @file_put_contents($queue_file_admin, json_encode($admin_email_queue, JSON_PRETTY_PRINT));
-
-    // Optionally trigger processing in the background (best‑effort, non‑blocking)
-    if (function_exists('exec')) {
-        $php_path = PHP_BINARY;
-        $script_path = __DIR__ . '/process_email_queue.php';
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            @exec("start /B \"\" \"$php_path\" \"$script_path\" > nul 2>&1");
-        } else {
-            @exec("$php_path \"$script_path\" > /dev/null 2>&1 &");
-        }
-    }
-
-    // Trigger robust email processing in background (non-blocking)
-    if (function_exists('exec')) {
-        $php_path = PHP_BINARY;
-        $script_path = __DIR__ . '/admin/robust_email_processor.php';
-        
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            // Windows - run in background without blocking
-            exec("start /B \"\" \"$php_path\" \"$script_path\" > nul 2>&1", $output, $return_var);
-        } else {
-            // Linux/Mac - run in background
-            exec("$php_path \"$script_path\" > /dev/null 2>&1 &", $output, $return_var);
-        }
-    }
     
+    write_queue_file($queue_file, $email_queue_data);
+
+    // ========== STEP 3b: Send notification to admin ==========
+    $admin_queue_file = __DIR__ . '/email_queue_admin_' . $reservation_id . '_' . time() . '.json';
+    $admin_email_data = [
+        'customer' => [
+            'to' => ADMIN_EMAIL,
+            'to_name' => 'Haveli Admin',
+            'subject' => 'New Reservation Request - ' . $name . ' (' . $guests . ' guests)',
+            'template' => 'admin_notification',
+            'data' => [
+                'customer_name' => $name,
+                'customer_email' => $email,
+                'customer_phone' => $phone,
+                'reservation_date' => $date,
+                'reservation_time' => $time,
+                'num_guests' => $guests,
+                'day_of_week' => $dayName,
+                'reservation_id' => $reservation_id
+            ]
+        ]
+    ];
+    write_queue_file($admin_queue_file, $admin_email_data);
+
+    triggerEmailProcessing();
+    
+    // ========== STEP 4: Return success response ==========
+    http_response_code(200);
     echo json_encode([
         'success' => true,
-        'message' => 'Reservation request saved! A confirmation email will arrive shortly.',
-        'queued_customer' => file_exists($queue_file_customer) ? 1 : 0,
-        'queued_admin' => file_exists($queue_file_admin) ? 1 : 0
+        'message' => "✅ Reservation confirmed! We've received your booking request for $dayName at $time. You will receive a confirmation email shortly.",
+        'reservation_id' => $reservation_id,
+        'reservation_date' => $date,
+        'reservation_time' => $time,
+        'confirmation_sent' => true
     ]);
     exit;
-
-} catch (PDOException $e) {
-    error_log("Database Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'A server error occurred. Please try again later.']);
+    
+} catch (Throwable $e) {
+    // ========== ERROR HANDLING ==========
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'An error occurred while processing your reservation. Please try again.',
+        'error_detail' => $e->getMessage(),
+        'error_file' => basename($e->getFile()),
+        'error_line' => $e->getLine()
+    ]);
     exit;
 }
 ?>

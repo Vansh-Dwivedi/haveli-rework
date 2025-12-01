@@ -157,13 +157,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && !empty($_GET['id']))
     <title>Admin - Blog</title>
     <link rel="stylesheet" href="admin-dashboard-simple.css">
     <link rel="stylesheet" href="css/admin-blog.css">
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <div class="admin-blog">
     <h1>Blog - Admin</h1>
     <p><a href="admin_dashboard_simple.php">← Back to Dashboard</a> | <a href="blog.php" target="_blank">View public blog</a></p>
-    <button id="regen-sitemap" class="btn btn-sm" style="margin-left:12px;">Regenerate Sitemap</button>
+    <button id="regen-sitemap" class="btn btn-success btn-sm" style="margin-left:12px;">
+        <i class="fas fa-sync-alt"></i> Regenerate Sitemap
+    </button>
 
     <section class="post-list">
         <h2>Posts</h2>
@@ -174,18 +176,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && !empty($_GET['id']))
                     <div style="font-size:12px;color:#666"><?php echo htmlspecialchars($p['slug']); ?> — <?php echo htmlspecialchars($p['status']); ?> — <?php echo $p['published_at']; ?></div>
                 </div>
                 <div>
-                    <a class="btn btn-sm" href="admin_blog.php?action=edit&id=<?php echo $p['id']; ?>">Edit</a>
+                    <a class="btn btn-primary btn-sm" href="admin_blog.php?action=edit&id=<?php echo $p['id']; ?>">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
                     <form method="post" style="display:inline" onsubmit="return confirm('Delete this post?');">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
-                        <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                        <button class="btn btn-danger btn-sm" type="submit">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
                     </form>
                     <?php
                         // absolute public URL for this post
                         $publicUrl = $publicBase . '/blog_post.php?slug=' . urlencode($p['slug']);
                     ?>
-                    <a class="btn btn-sm" href="<?php echo htmlspecialchars($publicUrl); ?>" target="_blank">Preview</a>
-                    <a class="btn btn-sm" href="#" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($publicUrl); ?>','fbshare','width=626,height=436'); return false;">Share</a>
+                    <a class="btn btn-ghost btn-sm" href="<?php echo htmlspecialchars($publicUrl); ?>" target="_blank">
+                        <i class="fas fa-eye"></i> Preview
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="#" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($publicUrl); ?>','fbshare','width=626,height=436'); return false;">
+                        <i class="fab fa-facebook-f"></i> Share
+                    </a>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -204,9 +214,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && !empty($_GET['id']))
             </label>
             <label>Excerpt
                 <textarea name="excerpt" rows="3"><?php echo htmlspecialchars($editing['excerpt'] ?? ''); ?></textarea>
-            </label>
-            <label>Content (HTML allowed)
-                <textarea id="post-content" name="content" rows="10"><?php echo htmlspecialchars($editing['content'] ?? ''); ?></textarea>
             </label>
             <label>Featured Image
                 <input type="file" name="featured_image" accept="image/*">
@@ -228,29 +235,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && !empty($_GET['id']))
                 <input type="datetime-local" name="published_at" value="<?php echo !empty($editing['published_at']) ? date('Y-m-d\TH:i', strtotime($editing['published_at'])) : ''; ?>">
             </label>
             <div style="margin-top:12px">
-                <button class="btn btn-primary" type="submit">Save</button>
+                <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-save"></i> Save
+                </button>
                 <?php if ($editing): ?>
                     <?php $editPublicUrl = $publicBase . '/blog_post.php?slug=' . urlencode($editing['slug']); ?>
-                    <a class="btn btn-sm" href="<?php echo htmlspecialchars($editPublicUrl); ?>" target="_blank" style="margin-left:8px">Preview</a>
-                    <a class="btn btn-sm" href="#" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($editPublicUrl); ?>','fbshare','width=626,height=436'); return false;" style="margin-left:6px">Share</a>
+                    <a class="btn btn-ghost btn-sm" href="<?php echo htmlspecialchars($editPublicUrl); ?>" target="_blank" style="margin-left:8px">
+                        <i class="fas fa-eye"></i> Preview
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="#" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($editPublicUrl); ?>','fbshare','width=626,height=436'); return false;" style="margin-left:6px">
+                        <i class="fab fa-facebook-f"></i> Share
+                    </a>
                 <?php endif; ?>
             </div>
         </form>
     </section>
 </div>
 <script>
-// Initialize TinyMCE editor
-tinymce.init({
-    selector: '#post-content',
-    height: 400,
-    menubar: false,
-    plugins: ['link','lists','code','image','media','table','autolink','paste'],
-    toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | bullist numlist | link image media | code',
-    relative_urls: false,
-    remove_script_host: false,
-    convert_urls: true
-});
-
 // Regenerate sitemap button
 document.getElementById('regen-sitemap').addEventListener('click', function() {
     this.disabled = true;

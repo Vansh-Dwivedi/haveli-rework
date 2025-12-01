@@ -6,6 +6,11 @@ function getDBConnection() {
     $username = 'root';
     $password = '';
     $database = 'haveli_restaurant';
+//function getDBConnection() {
+    //$host = 'localhost';
+    //$username = 'Vansh';
+    //$password = '2001-Vansh';
+    //$database = 'haveli_db';
 
     try {
         $dsn = "mysql:host={$host};dbname={$database};charset=utf8";

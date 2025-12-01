@@ -4,7 +4,28 @@
  * Standalone endpoint for confirming reservations
  */
 
+// Prevent any output until we are ready to send JSON
+ob_start();
+
+// Disable error display to prevent JSON corruption
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
+
+// Register shutdown function to catch fatal errors
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && ($error['type'] === E_ERROR || $error['type'] === E_PARSE || $error['type'] === E_CORE_ERROR || $error['type'] === E_COMPILE_ERROR)) {
+        // Clean any previous output
+        if (ob_get_length()) ob_clean();
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Fatal Error: ' . $error['message']
+        ]);
+    }
+});
 
 // Allow requests from your domain
 header('Access-Control-Allow-Origin: *');
@@ -16,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/queue_helpers.php';
 
 try {
     $pdo = getDBConnection();
@@ -24,6 +46,7 @@ try {
     $reservation_id = $_POST['reservation_id'] ?? 0;
     
     if (!$reservation_id) {
+        if (ob_get_length()) ob_clean();
         echo json_encode(['success' => false, 'message' => 'No reservation ID provided']);
         exit;
     }
@@ -34,6 +57,7 @@ try {
     $reservation = $check_stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$reservation) {
+        if (ob_get_length()) ob_clean();
         echo json_encode(['success' => false, 'message' => 'Reservation not found or already processed']);
         exit;
     }
@@ -67,40 +91,33 @@ try {
         
         // Create queue file
         $queue_file = __DIR__ . '/email_queue_confirm_' . $reservation_id . '_' . time() . '.json';
-        $queue_saved = file_put_contents($queue_file, json_encode($confirmation_email_queue, JSON_PRETTY_PRINT));
+        write_queue_file($queue_file, $confirmation_email_queue);
         
-        if ($queue_saved) {
-            // Trigger email processing
-            if (function_exists('exec')) {
-                $php_path = PHP_BINARY;
-                $script_path = __DIR__ . '/process_email_queue.php';
-                
-                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                    exec("start /B \"\" \"$php_path\" \"$script_path\" > nul 2>&1");
-                } else {
-                    exec("$php_path \"$script_path\" > /dev/null 2>&1 &");
-                }
-            }
+        // Trigger email processing immediately
+        if (function_exists('exec')) {
+            $php_path = PHP_BINARY;
+            $script_path = __DIR__ . '/process_email_queue.php';
             
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Reservation confirmed! Confirmation email will be sent shortly.',
-                'reservation_id' => $reservation_id
-            ]);
-        } else {
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Reservation confirmed but email queue failed. Please send manual confirmation.',
-                'reservation_id' => $reservation_id
-            ]);
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                exec("start /B \"\" \"$php_path\" \"$script_path\" > nul 2>&1");
+            } else {
+                exec("$php_path \"$script_path\" > /dev/null 2>&1 &");
+            }
         }
+        
+        if (ob_get_length()) ob_clean();
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Reservation confirmed! Confirmation email will be sent shortly.',
+            'reservation_id' => $reservation_id
+        ]);
     } else {
+        if (ob_get_length()) ob_clean();
         echo json_encode(['success' => false, 'message' => 'Failed to confirm reservation']);
     }
     
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
 ?>

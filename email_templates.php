@@ -279,8 +279,102 @@ function getRejectionEmailTemplate($customer_name, $reservation_date, $reservati
                 </div>
             </div>
             
-            <!-- Bottom flourish -->
+                <!-- Bottom flourish -->
             <div style='height: 6px; background: linear-gradient(45deg, #2c3e50, #e74c3c);'></div>
+        </div>
+    </body>
+    </html>";
+}
+
+/**
+ * Admin notification email template - sent when a new reservation request is made
+ */
+function getAdminNotificationTemplate($customer_name, $customer_email, $customer_phone, $reservation_date, $reservation_time, $num_guests, $day_of_week, $reservation_id) {
+    return "
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>New Reservation Request - Haveli Restaurant</title>
+    </head>
+    <body style='margin: 0; padding: 0; font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5;'>
+        <div style='max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);'>
+            
+            <!-- Header -->
+            <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; text-align: center;'>
+                <h1 style='color: white; margin: 0; font-size: 22px;'>
+                    🔔 New Reservation Request
+                </h1>
+                <p style='color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;'>
+                    Reservation ID: #{$reservation_id}
+                </p>
+            </div>
+            
+            <!-- Content -->
+            <div style='padding: 25px;'>
+                
+                <!-- Alert Banner -->
+                <div style='background: linear-gradient(45deg, #ff9f43, #feca57); color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;'>
+                    <strong style='font-size: 16px;'>⏰ Action Required: Review & Confirm</strong>
+                </div>
+                
+                <!-- Customer Details -->
+                <div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                    <h3 style='color: #333; margin: 0 0 15px 0; font-size: 16px; border-bottom: 2px solid #667eea; padding-bottom: 10px;'>
+                        👤 Customer Details
+                    </h3>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666; width: 40%;'>Name:</td>
+                            <td style='padding: 8px 0; color: #333; font-weight: 600;'>{$customer_name}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666;'>Email:</td>
+                            <td style='padding: 8px 0; color: #333;'><a href='mailto:{$customer_email}' style='color: #667eea;'>{$customer_email}</a></td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666;'>Phone:</td>
+                            <td style='padding: 8px 0; color: #333;'><a href='tel:{$customer_phone}' style='color: #667eea;'>{$customer_phone}</a></td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Reservation Details -->
+                <div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                    <h3 style='color: #333; margin: 0 0 15px 0; font-size: 16px; border-bottom: 2px solid #667eea; padding-bottom: 10px;'>
+                        📅 Reservation Details
+                    </h3>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666; width: 40%;'>Date:</td>
+                            <td style='padding: 8px 0; color: #333; font-weight: 600;'>{$reservation_date} ({$day_of_week})</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666;'>Time:</td>
+                            <td style='padding: 8px 0; color: #333; font-weight: 600;'>{$reservation_time}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #666;'>Guests:</td>
+                            <td style='padding: 8px 0; color: #333; font-weight: 600;'>{$num_guests} people</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Action Button -->
+                <div style='text-align: center; margin: 25px 0;'>
+                    <a href='https://haveli.co.uk/admin_dashboard.php' style='display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 30px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);'>
+                        Open Admin Dashboard →
+                    </a>
+                </div>
+                
+                <!-- Footer -->
+                <div style='text-align: center; padding-top: 20px; border-top: 1px solid #eee;'>
+                    <p style='color: #999; font-size: 12px; margin: 0;'>
+                        This is an automated notification from Haveli Restaurant Booking System
+                    </p>
+                </div>
+            </div>
         </div>
     </body>
     </html>";

@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/queue_helpers.php';
 
 try {
     $pdo = getDBConnection();
@@ -68,7 +69,7 @@ try {
                 ];
                 
                 $queue_file = __DIR__ . '/email_queue_request_' . $reservation_id . '_' . time() . '.json';
-                file_put_contents($queue_file, json_encode($request_queue, JSON_PRETTY_PRINT));
+                write_queue_file($queue_file, $request_queue);
                 
                 echo json_encode([
                     'success' => true, 

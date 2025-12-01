@@ -437,7 +437,7 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
 
     <script>
         // Robust fetch helper that ensures JSON and reports meaningful errors
-        async function fetchJsonSafe(url, options = {}, timeoutMs = 15000) {
+        async function fetchJsonSafe(url, options = {}, timeoutMs = 30000) {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), timeoutMs);
             options = Object.assign({}, options, { signal: controller.signal });
@@ -1000,7 +1000,7 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
                     showToast('Reservation confirmed! Email sent.', 'success');
                     // Trigger queue processing in the background (non-blocking)
                     try {
-                        fetchJsonSafe('process_email_queue.php', {}, 20000)
+                        fetchJsonSafe('process_email_queue.php', {}, 60000)
                             .then(processData => {
                                 if (processData && !processData.success) {
                                     showToast('Email queue processed with issues: ' + (processData.message || ''), 'warning');
@@ -1151,7 +1151,7 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
                     showToast('Reservation refused and customer notified.', 'success');
                     // process email queue in background
                     try {
-                        fetchJsonSafe('process_email_queue.php', {}, 20000)
+                        fetchJsonSafe('process_email_queue.php', {}, 60000)
                             .then(processData => {
                                 if (processData && !processData.success) {
                                     showToast('Email queue processed with issues: ' + (processData.message || ''), 'warning');
@@ -1177,7 +1177,7 @@ if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regenera
             showLoading();
             
             try {
-                const result = await fetchJsonSafe('process_email_queue.php');
+                const result = await fetchJsonSafe('process_email_queue.php', {}, 60000);
                 
                 if (result.success) {
                     showToast(result.message, 'success');

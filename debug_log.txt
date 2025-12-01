@@ -1,0 +1,2 @@
+Attempting to write queue file: L:\Apps\haveli/email_queue_request_20_1763549857.json
+Queue file written successfully.

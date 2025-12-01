@@ -245,21 +245,21 @@ $_SESSION['last_activity'] = time();
                 </div>
             </div>
             
-            <!-- Blog Admin Section (loads admin_blog.php in an iframe to keep admin environment isolated) -->
+            <!-- Blog Admin Section (direct load without iframe) -->
             <div id="blog" class="content-section">
                 <div class="section-header">
                     <h2 class="section-title">
                         <i class="fas fa-blog"></i> Blog Admin
                     </h2>
                     <div>
-                        <button class="btn btn-primary" onclick="reloadBlogFrame()">
+                        <button class="btn btn-primary" onclick="reloadBlogContent()">
                             <i class="fas fa-sync"></i> Reload Blog Admin
                         </button>
                     </div>
                 </div>
 
                 <div id="blog-content" style="padding:12px;">
-                    <iframe id="blog-frame" src="about:blank" style="width:100%; height:72vh; border:1px solid rgba(0,0,0,0.08); border-radius:8px; background:#fff;" title="Blog Admin"></iframe>
+                    <p>Loading blog admin...</p>
                 </div>
             </div>
         </div>
@@ -415,13 +415,13 @@ $_SESSION['last_activity'] = time();
                     loadEmailSystem();
                     break;
                 case 'blog':
-                    // ensure blog iframe is loaded when user navigates programmatically
+                    // ensure blog content is loaded when user navigates programmatically
                     ensureBlogLoaded();
                     break;
             }
         }
 
-        // Blog iframe helpers
+        // Blog content helpers
         let _blogLoaded = false;
         function openBlogInDashboard(event) {
             if (event) event.preventDefault();
@@ -436,20 +436,37 @@ $_SESSION['last_activity'] = time();
             ensureBlogLoaded(true);
         }
 
-        function ensureBlogLoaded(forceReload = false) {
-            const iframe = document.getElementById('blog-frame');
-            if (!iframe) return;
+        async function ensureBlogLoaded(forceReload = false) {
+            const blogContent = document.getElementById('blog-content');
+            if (!blogContent) return;
             if (!_blogLoaded || forceReload) {
-                iframe.src = 'admin_blog.php';
-                _blogLoaded = true;
+                blogContent.innerHTML = '<p>Loading blog admin...</p>';
+                try {
+                    const response = await fetch('admin_blog_content.php');
+                    const html = await response.text();
+                    blogContent.innerHTML = html;
+                    _blogLoaded = true;
+                    
+                    // Execute any scripts in the loaded content
+                    const scripts = blogContent.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        Array.from(script.attributes).forEach(attr => {
+                            newScript.setAttribute(attr.name, attr.value);
+                        });
+                        newScript.textContent = script.textContent;
+                        blogContent.appendChild(newScript);
+                    });
+                } catch (error) {
+                    console.error('Error loading blog admin:', error);
+                    blogContent.innerHTML = '<p>Error loading blog admin. Please try again.</p>';
+                }
             }
         }
 
-        function reloadBlogFrame() {
-            const iframe = document.getElementById('blog-frame');
-            if (iframe) {
-                iframe.contentWindow.location.reload();
-            }
+        function reloadBlogContent() {
+            _blogLoaded = false;
+            ensureBlogLoaded(true);
         }
         
         // Dashboard Functions

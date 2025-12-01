@@ -33,6 +33,7 @@ try {
     if (!function_exists('getDBConnection')) {
         require_once __DIR__ . '/db_config.php';
     }
+    require_once __DIR__ . '/queue_helpers.php';
     $pdo = getDBConnection();
     
     switch ($action) {
@@ -256,23 +257,16 @@ try {
                     
                     // Create queue file with improved naming in root directory
                     $queue_file = __DIR__ . '/email_queue_confirm_' . $reservation_id . '_' . time() . '.json';
-                    $queue_saved = file_put_contents($queue_file, json_encode($confirmation_email_queue, JSON_PRETTY_PRINT));
+                    write_queue_file($queue_file, $confirmation_email_queue);
                     
-                    if ($queue_saved) {
-                        // Trigger immediate processing with multiple methods for reliability
-                        triggerEmailProcessing();
-                        
-                        echo json_encode([
-                            'success' => true, 
-                            'message' => 'Reservation confirmed! Confirmation email queued and will be sent within 30 seconds.',
-                            'reservation_id' => $reservation_id
-                        ]);
-                    } else {
-                        echo json_encode([
-                            'success' => false, 
-                            'message' => 'Reservation confirmed but email queue failed. Please send manual confirmation.'
-                        ]);
-                    }
+                    // Trigger immediate processing with multiple methods for reliability
+                    triggerEmailProcessing();
+                    
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Reservation confirmed! Confirmation email queued and will be sent within 30 seconds.',
+                        'reservation_id' => $reservation_id
+                    ]);
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Reservation not found after update']);
                 }
@@ -368,7 +362,7 @@ try {
                             ]
                         ];
                         $queue_file = __DIR__ . '/email_queue_confirm_bulk_' . $reservation_id . '_' . time() . '.json';
-                        file_put_contents($queue_file, json_encode($queue, JSON_PRETTY_PRINT));
+                        write_queue_file($queue_file, $queue);
                     } elseif (strtolower($new_status) === 'refused') {
                         $queue = [
                             'customer' => [
@@ -390,7 +384,7 @@ try {
                             ]
                         ];
                         $queue_file = __DIR__ . '/email_queue_reject_bulk_' . $reservation_id . '_' . time() . '.json';
-                        file_put_contents($queue_file, json_encode($queue, JSON_PRETTY_PRINT));
+                        write_queue_file($queue_file, $queue);
                     }
                 }
 
@@ -405,7 +399,7 @@ try {
                     'changes' => $previous
                 ];
                 $log_file = __DIR__ . '/bulk_update_log_' . time() . '_' . bin2hex(random_bytes(6)) . '.json';
-                file_put_contents($log_file, json_encode($log, JSON_PRETTY_PRINT));
+                write_queue_file($log_file, $log);
 
                 $undo_token = basename($log_file);
 
