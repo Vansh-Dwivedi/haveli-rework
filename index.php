@@ -673,7 +673,7 @@ try {
           </div>
         </section>
         <div class="magnetic-area">
-          <a href="#interactive-menu" class="magnetic-circle" id="shape1">Order Online</a>
+          <a href="#thefork-order" class="magnetic-circle" id="shape1">Order Online</a>
           <a href="#reservations" class="magnetic-circle" id="shape2">Reservations</a>
           <a href="#catering" target="_blank" rel="noopener noreferrer" class="magnetic-circle"
             id="shape4">Catering</a>
@@ -943,6 +943,7 @@ try {
   </nav>
   
   <section id="interactive-menu" class="interactive-menu-container">
+
     <nav class="menu-tabs">
       <button class="tab-link active" onclick="openMenu(event, 'breakfast')">Breakfast</button>
       <button class="tab-link" onclick="openMenu(event, 'brunch')">Brunch</button>
@@ -2575,6 +2576,30 @@ try {
 
     </div>
   </section>
+
+  <section id="thefork-order" class="thefork-order-section">
+    <div class="thefork-order-block">
+      <div class="thefork-order-header">
+        <h2 class="thefork-order-title">Order with TheFork</h2>
+        <p class="thefork-order-subtitle">Use TheFork to order from Haveli.</p>
+      </div>
+
+      <div class="thefork-order-widget" aria-label="TheFork ordering widget">
+        <iframe
+          class="thefork-order-iframe"
+          src="https://widget.thefork.com/93aada36-a925-4fbd-8cc9-bc0d77225446"
+          title="Order on TheFork"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+
+      <div class="thefork-order-fallback">
+        <a class="btn order-online" href="https://widget.thefork.com/93aada36-a925-4fbd-8cc9-bc0d77225446" target="_blank" rel="noopener noreferrer">Open TheFork ordering</a>
+      </div>
+    </div>
+  </section>
+
   <section id="reservations" class="reservation-section">
     <div class="reservation-container">
       <div class="reservation-header">
@@ -3080,7 +3105,7 @@ try {
     <ul class="nav-links2">
       <li><a href="#" class="fullscreen-nav-link">Home</a></li>
       <li><a href="#parking" class="fullscreen-nav-link">Parking</a></li>
-      <li><a href="#interactive-menu" class="fullscreen-nav-link">Order Online</a></li>
+      <li><a href="#thefork-order" class="fullscreen-nav-link">Order Online</a></li>
       <li><a href="#reservations" class="fullscreen-nav-link">Reservations</a></li>
       <li><a href="#" class="fullscreen-nav-link" onclick="openModal()">Corporate Events</a></li>
       <li><a href="#catering" class="fullscreen-nav-link">Private Banqueting & Catering</a></li>

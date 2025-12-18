@@ -1488,6 +1488,93 @@ canvas {
   transition: all 0.4s ease;
 }
 
+/* TheFork ordering widget block */
+.thefork-order-section {
+  padding: 80px 20px;
+  background-color: #f8f9fa;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.thefork-order-block {
+  max-width: 700px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  color: #212529;
+}
+
+.thefork-order-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.thefork-order-title {
+  font-size: clamp(2.2rem, 5vw, 2.8rem);
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 15px;
+}
+
+.thefork-order-subtitle {
+  font-size: 1.1rem;
+  color: #6c757d;
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.thefork-order-widget {
+  width: 100%;
+}
+
+.thefork-order-iframe {
+  width: 100%;
+  min-height: 560px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.thefork-order-fallback {
+  text-align: center;
+  margin-top: 18px;
+}
+
+/* Match TheFork CTA button to the site's light theme */
+.thefork-order-fallback .btn.order-online {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 30px;
+  border-radius: 8px;
+  background-color: #212529;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.thefork-order-fallback .btn.order-online:hover {
+  background-color: #ffb347;
+  color: #212529;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .thefork-order-block {
+    padding: 22px 18px;
+  }
+
+  .thefork-order-iframe {
+    min-height: 680px;
+  }
+}
+
 /* 🚀 Tab Navigation */
 .menu-tabs {
   display: flex;
