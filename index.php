@@ -91,10 +91,12 @@ if (isset($_GET['payment']) && $_GET['payment'] === 'success' && isset($_GET['se
 require_once __DIR__ . '/db_config.php';
 try {
   $__pdo_slider = getDBConnection();
-  $stmt_slider = $__pdo_slider->prepare('SELECT id, title, slug, excerpt, featured_image FROM posts WHERE status = "published" AND (published_at IS NULL OR published_at <= NOW()) ORDER BY published_at DESC, created_at DESC LIMIT 6');
-  $stmt_slider->execute();
+  $now = date('Y-m-d H:i:s');
+  $stmt_slider = $__pdo_slider->prepare('SELECT id, title, slug, excerpt, featured_image FROM posts WHERE status = "published" AND (published_at IS NULL OR published_at <= ?) ORDER BY published_at DESC, created_at DESC LIMIT 6');
+  $stmt_slider->execute([$now]);
   $recent_posts_slider = $stmt_slider->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
+} catch (Throwable $e) {
+  error_log('Homepage slider posts query failed: ' . $e->getMessage());
   $recent_posts_slider = [];
 }
 ?>
