@@ -3,14 +3,9 @@
 // Deployment credentials per your server setup
 function getDBConnection() {
     $host = 'localhost';
-    $username = 'root';
-    $password = '';
-    $database = 'haveli_restaurant';
-//function getDBConnection() {
-    //$host = 'localhost';
-    //$username = 'Vansh';
-    //$password = '2001-Vansh';
-    //$database = 'haveli_db';
+    $username = 'Vansh';
+    $password = '2001-Vansh';
+    $database = 'haveli_db';
 
     try {
         $dsn = "mysql:host={$host};dbname={$database};charset=utf8";
@@ -22,4 +17,5 @@ function getDBConnection() {
         die("Database connection failed. Please contact the administrator.");
     }
 }
+
 ?>

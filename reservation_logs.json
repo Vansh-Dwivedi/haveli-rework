@@ -110,5 +110,21 @@
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
         "validation_passed": true,
         "system_notes": "Advance booking: 20+ hours required | Validated successfully"
+    },
+    {
+        "reservation_id": "23",
+        "timestamp": "2025-12-31 06:36:36",
+        "day_of_week": "Friday",
+        "customer_name": "rajiv dwivedi",
+        "phone": "08146094888",
+        "email": "jumbo16enator@gmail.com",
+        "reservation_date": "2026-01-02",
+        "reservation_time": "13:06",
+        "num_guests": 9,
+        "status": "Pending",
+        "ip_address": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "validation_passed": true,
+        "system_notes": "Advance booking: 2+ hours required | Validated successfully"
     }
 ]
